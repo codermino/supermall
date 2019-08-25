@@ -1,115 +1,16 @@
 <template>
-  <div id="home" class="wrapper">
+  <div id="home">
     <nav-bar class="home-nav"><div slot="center">购物街</div></nav-bar>
-    <home-swiper :banners="banners"/>
-    <recommend-view :recommends="recommends"/>
-    <feature-view/>
-    <tab-control class="tab-control"
-                 :titles="['流行', '新款', '精选']"
-                 @tabClick="tabClick"/>
-    <good-list :goods="showGoods"></good-list>
-    <ul>
-      <li>信息1</li>
-      <li>信息2</li>
-      <li>信息3</li>
-      <li>信息4</li>
-      <li>信息5</li>
-      <li>信息6</li>
-      <li>信息7</li>
-      <li>信息8</li>
-      <li>信息9</li>
-      <li>信息10</li>
-      <li>信息11</li>
-      <li>信息12</li>
-      <li>信息13</li>
-      <li>信息14</li>
-      <li>信息15</li>
-      <li>信息16</li>
-      <li>信息17</li>
-      <li>信息18</li>
-      <li>信息19</li>
-      <li>信息20</li>
-      <li>信息21</li>
-      <li>信息22</li>
-      <li>信息23</li>
-      <li>信息24</li>
-      <li>信息25</li>
-      <li>信息26</li>
-      <li>信息27</li>
-      <li>信息28</li>
-      <li>信息29</li>
-      <li>信息30</li>
-      <li>信息31</li>
-      <li>信息32</li>
-      <li>信息33</li>
-      <li>信息34</li>
-      <li>信息35</li>
-      <li>信息36</li>
-      <li>信息37</li>
-      <li>信息38</li>
-      <li>信息39</li>
-      <li>信息40</li>
-      <li>信息41</li>
-      <li>信息42</li>
-      <li>信息43</li>
-      <li>信息44</li>
-      <li>信息45</li>
-      <li>信息46</li>
-      <li>信息47</li>
-      <li>信息48</li>
-      <li>信息49</li>
-      <li>信息50</li>
-      <li>信息51</li>
-      <li>信息52</li>
-      <li>信息53</li>
-      <li>信息54</li>
-      <li>信息55</li>
-      <li>信息56</li>
-      <li>信息57</li>
-      <li>信息58</li>
-      <li>信息59</li>
-      <li>信息60</li>
-      <li>信息61</li>
-      <li>信息62</li>
-      <li>信息63</li>
-      <li>信息64</li>
-      <li>信息65</li>
-      <li>信息66</li>
-      <li>信息67</li>
-      <li>信息68</li>
-      <li>信息69</li>
-      <li>信息70</li>
-      <li>信息71</li>
-      <li>信息72</li>
-      <li>信息73</li>
-      <li>信息74</li>
-      <li>信息75</li>
-      <li>信息76</li>
-      <li>信息77</li>
-      <li>信息78</li>
-      <li>信息79</li>
-      <li>信息80</li>
-      <li>信息81</li>
-      <li>信息82</li>
-      <li>信息83</li>
-      <li>信息84</li>
-      <li>信息85</li>
-      <li>信息86</li>
-      <li>信息87</li>
-      <li>信息88</li>
-      <li>信息89</li>
-      <li>信息90</li>
-      <li>信息91</li>
-      <li>信息92</li>
-      <li>信息93</li>
-      <li>信息94</li>
-      <li>信息95</li>
-      <li>信息96</li>
-      <li>信息97</li>
-      <li>信息98</li>
-      <li>信息99</li>
-      <li>信息100</li>
-    </ul>
+    <scroll class="content" ref="scroll" :probe-type="3" @scroll="contentScroll" :pull-up-load="true" @pullingUp="loadMore">
+      <home-swiper :banners="banners"/>
+      <recommend-view :recommends="recommends"/>
+      <feature-view/>
+      <tab-control class="tab-control"
+                   :titles="['流行', '新款', '精选']"
+                   @tabClick="tabClick"/>
+      <good-list :goods="showGoods"></good-list>
+    </scroll>
+    <back-top @click.native="backClick" v-show="isShowBackTop"></back-top>
   </div>
 </template>
 
@@ -121,6 +22,8 @@
   import NavBar from 'components/common/navbar/NavBar'
   import TabControl from 'components/content/tabControl/TabControl'
   import GoodList from 'components/content/goods/GoodsList'
+  import Scroll from 'components/common/scroll/Scroll'
+  import BackTop from 'components/content/backTop/BackTop'
 
   import { getHomeMultidata, getHomeGoods } from "network/home"
 
@@ -132,10 +35,13 @@
       FeatureView,
       NavBar,
       TabControl,
-      GoodList
+      GoodList,
+      Scroll,
+      BackTop
     },
     data() {
       return {
+        result:null,
         banners: [],
         recommends: [],
         goods: {
@@ -144,6 +50,7 @@
           'sell': {page: 0, list: []},
         },
         currentType: 'pop',
+        isShowBackTop:false,
       }
     },
     computed: {
@@ -177,12 +84,23 @@
             break
         }
       },
+      backClick() {
+        this.$refs.scroll.scrollTo(0, 0)
+      },
+      contentScroll(position){
+        // console.log(position);
+        this.isShowBackTop= (-position.y)>1000
+      },
+      loadMore() {
+        this.getHomeGoods(this.currentType)
+      },
       /**
        * 网络请求相关的方法
        */
       getHomeMultidata() {
         getHomeMultidata().then(res => {
-          // this.result = res;
+          this.result = res;
+
           this.banners = res.data.banner.list;
           this.recommends = res.data.recommend.list;
         })
@@ -192,6 +110,8 @@
         getHomeGoods(type, page).then(res => {
           this.goods[type].list.push(...res.data.list)
           this.goods[type].page += 1
+
+          this.$refs.scroll.finishPullUp()
         })
       }
     }
@@ -200,8 +120,7 @@
 
 <style scoped>
   #home {
-    width: 100%;
-    padding-top: 44px;
+    /*padding-top: 44px;*/
     height: 100vh;
     position: relative;
   }
@@ -218,8 +137,7 @@
   }
 
   .tab-control {
-    /*position: sticky;*/
-    position: fixed;
+    position: sticky;
     top: 44px;
     z-index: 9;
   }
